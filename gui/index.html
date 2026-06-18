@@ -1,0 +1,603 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>CursedChrome</title>
+<style>
+  :root {
+    --bg: #0f1117;
+    --card: #1a1d27;
+    --border: #2d3148;
+    --accent: #6c63ff;
+    --accent-h: #8b84ff;
+    --danger: #e05252;
+    --success: #3ecf8e;
+    --warn: #f5a623;
+    --text: #e0e0e0;
+    --muted: #777;
+    --input-bg: #111420;
+    --radius: 6px;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    font-size: 14px;
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100vh;
+  }
+
+  /* ── Layout ─────────────────────────────────────────── */
+  #login-screen {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 100vh;
+  }
+  .login-card {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 2rem 2.5rem;
+    width: 340px;
+  }
+  .login-card h1 {
+    font-size: 1.4rem;
+    margin-bottom: 0.25rem;
+    color: var(--accent);
+  }
+  .login-card .subtitle {
+    color: var(--muted);
+    font-size: 12px;
+    margin-bottom: 1.5rem;
+  }
+
+  #dashboard { display: none; flex-direction: column; min-height: 100vh; }
+  header {
+    background: var(--card);
+    border-bottom: 1px solid var(--border);
+    padding: 0.75rem 1.5rem;
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+  }
+  header h1 { font-size: 1.1rem; color: var(--accent); flex: 1; }
+  header .badge {
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: 999px;
+    padding: 2px 10px;
+    font-size: 11px;
+    color: var(--muted);
+  }
+  .content { padding: 1.5rem; flex: 1; max-width: 1200px; width: 100%; margin: 0 auto; }
+  .toolbar {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    margin-bottom: 1rem;
+  }
+  .toolbar-left { flex: 1; display: flex; align-items: center; gap: 0.5rem; }
+  .status-dot {
+    width: 8px; height: 8px; border-radius: 50%;
+    background: var(--success);
+    animation: pulse 2s infinite;
+  }
+  @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:.4} }
+  .refresh-note { font-size: 11px; color: var(--muted); }
+
+  /* ── Table ───────────────────────────────────────────── */
+  .table-wrap {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    overflow: hidden;
+  }
+  table { width: 100%; border-collapse: collapse; }
+  thead th {
+    background: #12151f;
+    padding: 0.6rem 1rem;
+    text-align: left;
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: var(--muted);
+    border-bottom: 1px solid var(--border);
+    white-space: nowrap;
+  }
+  tbody tr { border-bottom: 1px solid var(--border); transition: background .1s; }
+  tbody tr:last-child { border-bottom: none; }
+  tbody tr:hover { background: rgba(108,99,255,.05); }
+  td { padding: 0.65rem 1rem; vertical-align: middle; }
+  td.name { font-weight: 500; }
+  td.mono { font-family: 'Courier New', monospace; font-size: 12px; }
+  .empty-row td {
+    text-align: center;
+    color: var(--muted);
+    padding: 2.5rem;
+  }
+
+  /* ── Badges ──────────────────────────────────────────── */
+  .badge-online, .badge-offline {
+    display: inline-block;
+    padding: 2px 10px;
+    border-radius: 999px;
+    font-size: 11px;
+    font-weight: 600;
+  }
+  .badge-online  { background: rgba(62,207,142,.15); color: var(--success); }
+  .badge-offline { background: rgba(224,82,82,.12); color: var(--danger); }
+
+  /* ── Copy row ────────────────────────────────────────── */
+  .copy-row { display: flex; align-items: center; gap: 6px; }
+  .copy-btn {
+    background: none;
+    border: 1px solid var(--border);
+    color: var(--muted);
+    border-radius: 4px;
+    padding: 2px 6px;
+    cursor: pointer;
+    font-size: 11px;
+    transition: all .15s;
+    white-space: nowrap;
+  }
+  .copy-btn:hover { color: var(--text); border-color: var(--accent); }
+  .copy-btn.copied { color: var(--success); border-color: var(--success); }
+
+  /* ── Buttons ─────────────────────────────────────────── */
+  .btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    padding: 0.45rem 1rem;
+    border-radius: var(--radius);
+    border: none;
+    cursor: pointer;
+    font-size: 13px;
+    font-weight: 500;
+    transition: filter .15s, opacity .15s;
+  }
+  .btn:hover { filter: brightness(1.15); }
+  .btn:disabled { opacity: .5; cursor: not-allowed; }
+  .btn-primary { background: var(--accent); color: #fff; }
+  .btn-secondary { background: var(--border); color: var(--text); }
+  .btn-danger { background: var(--danger); color: #fff; }
+  .btn-sm { padding: 0.3rem 0.7rem; font-size: 12px; }
+
+  /* ── Forms ───────────────────────────────────────────── */
+  .form-group { margin-bottom: 1rem; }
+  .form-group label { display: block; margin-bottom: 0.35rem; font-size: 12px; color: var(--muted); }
+  input[type=text], input[type=password] {
+    width: 100%;
+    background: var(--input-bg);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    color: var(--text);
+    padding: 0.5rem 0.75rem;
+    font-size: 13px;
+    outline: none;
+    transition: border-color .15s;
+  }
+  input:focus { border-color: var(--accent); }
+  .error-msg {
+    background: rgba(224,82,82,.12);
+    border: 1px solid rgba(224,82,82,.3);
+    border-radius: var(--radius);
+    color: var(--danger);
+    padding: 0.5rem 0.75rem;
+    font-size: 12px;
+    margin-bottom: 1rem;
+    display: none;
+  }
+  .warn-msg {
+    background: rgba(245,166,35,.1);
+    border: 1px solid rgba(245,166,35,.3);
+    border-radius: var(--radius);
+    color: var(--warn);
+    padding: 0.6rem 0.85rem;
+    font-size: 12px;
+    margin-bottom: 1rem;
+    display: none;
+  }
+
+  /* ── Modal ───────────────────────────────────────────── */
+  .overlay {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,.6);
+    z-index: 100;
+    align-items: center;
+    justify-content: center;
+  }
+  .overlay.active { display: flex; }
+  .modal {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 1.5rem;
+    width: 380px;
+    max-width: 95vw;
+  }
+  .modal-header {
+    display: flex;
+    align-items: center;
+    margin-bottom: 1rem;
+  }
+  .modal-header h2 { font-size: 1rem; flex: 1; }
+  .modal-close {
+    background: none;
+    border: none;
+    color: var(--muted);
+    font-size: 1.25rem;
+    cursor: pointer;
+    line-height: 1;
+    padding: 0;
+  }
+  .modal-close:hover { color: var(--text); }
+  .modal-footer { margin-top: 1rem; display: flex; justify-content: flex-end; gap: 0.5rem; }
+
+  /* ── Toast ───────────────────────────────────────────── */
+  #toast {
+    position: fixed;
+    bottom: 1.5rem;
+    right: 1.5rem;
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 0.65rem 1rem;
+    font-size: 13px;
+    opacity: 0;
+    transition: opacity .25s;
+    z-index: 200;
+    pointer-events: none;
+  }
+  #toast.show { opacity: 1; }
+
+  /* ── CA download strip ───────────────────────────────── */
+  .ca-strip {
+    margin-top: 1rem;
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    padding: 0.6rem 1rem;
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    font-size: 12px;
+    color: var(--muted);
+  }
+  .ca-strip a { color: var(--accent); text-decoration: none; }
+  .ca-strip a:hover { text-decoration: underline; }
+</style>
+</head>
+<body>
+
+<!-- ── Login ─────────────────────────────────────────── -->
+<div id="login-screen">
+  <div class="login-card">
+    <h1>CursedChrome</h1>
+    <div class="subtitle">Browser proxy control panel</div>
+    <div class="error-msg" id="login-error"></div>
+    <div class="form-group">
+      <label>Username</label>
+      <input type="text" id="username" autocomplete="username" placeholder="admin">
+    </div>
+    <div class="form-group">
+      <label>Password</label>
+      <input type="password" id="password" autocomplete="current-password" placeholder="••••••••">
+    </div>
+    <button class="btn btn-primary" style="width:100%" id="login-btn" onclick="login()">Sign In</button>
+  </div>
+</div>
+
+<!-- ── Dashboard ─────────────────────────────────────── -->
+<div id="dashboard">
+  <header>
+    <h1>CursedChrome</h1>
+    <span class="badge" id="user-badge"></span>
+    <button class="btn btn-secondary btn-sm" onclick="changePasswordModal()">Change Password</button>
+    <button class="btn btn-secondary btn-sm" onclick="logout()">Sign Out</button>
+  </header>
+  <div class="content">
+    <div class="toolbar">
+      <div class="toolbar-left">
+        <div class="status-dot"></div>
+        <span class="refresh-note">Auto-refresh every 2s</span>
+      </div>
+      <span id="bot-count" style="color:var(--muted);font-size:12px;"></span>
+    </div>
+
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>Name</th>
+            <th>Proxy Username</th>
+            <th>Proxy Password</th>
+            <th>Status</th>
+            <th>User Agent</th>
+            <th></th>
+          </tr>
+        </thead>
+        <tbody id="bots-tbody">
+          <tr class="empty-row"><td colspan="6">Loading...</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="ca-strip">
+      <span>HTTPS interception requires you to trust the CursedChrome CA certificate.</span>
+      <a href="/api/v1/download_ca" download>Download CA cert</a>
+    </div>
+  </div>
+</div>
+
+<!-- ── Bot Options Modal ──────────────────────────────── -->
+<div class="overlay" id="bot-modal">
+  <div class="modal">
+    <div class="modal-header">
+      <h2>Bot Options</h2>
+      <button class="modal-close" onclick="closeModal('bot-modal')">×</button>
+    </div>
+    <div class="form-group">
+      <label>Name</label>
+      <input type="text" id="bot-name-input" placeholder="Give this bot a name...">
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary btn-sm" onclick="closeModal('bot-modal')">Cancel</button>
+      <button class="btn btn-primary btn-sm" onclick="saveBot()">Save</button>
+    </div>
+  </div>
+</div>
+
+<!-- ── Password Modal ─────────────────────────────────── -->
+<div class="overlay" id="pw-modal">
+  <div class="modal">
+    <div class="modal-header">
+      <h2>Change Password</h2>
+      <button class="modal-close" onclick="closeModal('pw-modal')">×</button>
+    </div>
+    <div class="warn-msg" id="pw-warn">You are using the default password. Please change it now.</div>
+    <div class="error-msg" id="pw-error"></div>
+    <div class="form-group">
+      <label>New Password</label>
+      <input type="password" id="new-pw" placeholder="••••••••">
+    </div>
+    <div class="form-group">
+      <label>Confirm New Password</label>
+      <input type="password" id="confirm-pw" placeholder="••••••••">
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary btn-sm" onclick="closeModal('pw-modal')">Cancel</button>
+      <button class="btn btn-primary btn-sm" onclick="savePassword()">Update Password</button>
+    </div>
+  </div>
+</div>
+
+<!-- ── Toast ──────────────────────────────────────────── -->
+<div id="toast"></div>
+
+<script>
+const API = '/api/v1';
+let refreshTimer = null;
+let currentBotId = null;
+let currentUser   = null;
+
+// ── Utils ─────────────────────────────────────────────
+
+async function api(method, path, body) {
+  const opts = { method, headers: {} };
+  if (body) {
+    opts.headers['Content-Type'] = 'application/json';
+    opts.body = JSON.stringify(body);
+  }
+  const res = await fetch(API + path, opts);
+  return res.json();
+}
+
+function toast(msg, duration = 2500) {
+  const el = document.getElementById('toast');
+  el.textContent = msg;
+  el.classList.add('show');
+  setTimeout(() => el.classList.remove('show'), duration);
+}
+
+function copy(text, btn) {
+  navigator.clipboard.writeText(text).then(() => {
+    btn.textContent = 'Copied!';
+    btn.classList.add('copied');
+    setTimeout(() => { btn.textContent = 'Copy'; btn.classList.remove('copied'); }, 1500);
+  });
+}
+
+function closeModal(id) {
+  document.getElementById(id).classList.remove('active');
+}
+
+function escHtml(str) {
+  return String(str)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;');
+}
+
+// ── Auth ──────────────────────────────────────────────
+
+async function login() {
+  const username = document.getElementById('username').value.trim();
+  const password = document.getElementById('password').value;
+  const errEl    = document.getElementById('login-error');
+  const btn      = document.getElementById('login-btn');
+
+  errEl.style.display = 'none';
+  btn.disabled = true;
+  btn.textContent = 'Signing in…';
+
+  try {
+    const data = await api('POST', '/login', { username, password });
+    if (!data.success) {
+      errEl.textContent = data.error || 'Login failed.';
+      errEl.style.display = 'block';
+    } else {
+      currentUser = data.result;
+      showDashboard();
+    }
+  } catch {
+    errEl.textContent = 'Network error — is the server running?';
+    errEl.style.display = 'block';
+  } finally {
+    btn.disabled = false;
+    btn.textContent = 'Sign In';
+  }
+}
+
+async function logout() {
+  await api('GET', '/logout');
+  currentUser = null;
+  clearInterval(refreshTimer);
+  document.getElementById('dashboard').style.display = 'none';
+  document.getElementById('login-screen').style.display = 'flex';
+}
+
+// ── Dashboard ─────────────────────────────────────────
+
+function showDashboard() {
+  document.getElementById('login-screen').style.display = 'none';
+  const dash = document.getElementById('dashboard');
+  dash.style.display = 'flex';
+  document.getElementById('user-badge').textContent = currentUser.username;
+
+  if (currentUser.password_should_be_changed) changePasswordModal(true);
+
+  refreshBots();
+  refreshTimer = setInterval(refreshBots, 2000);
+}
+
+async function refreshBots() {
+  const data = await api('GET', '/bots');
+  if (!data.success) return;
+  const bots   = data.result.bots;
+  const online  = bots.filter(b => b.is_online).length;
+  document.getElementById('bot-count').textContent =
+    `${bots.length} bot${bots.length !== 1 ? 's' : ''} · ${online} online`;
+
+  const tbody = document.getElementById('bots-tbody');
+  if (!bots.length) {
+    tbody.innerHTML = '<tr class="empty-row"><td colspan="6">No bots connected yet.</td></tr>';
+    return;
+  }
+
+  tbody.innerHTML = bots.map(b => `
+    <tr data-id="${escHtml(b.id)}">
+      <td class="name">${escHtml(b.name)}</td>
+      <td class="mono">
+        <div class="copy-row">
+          <span>${escHtml(b.proxy_username)}</span>
+          <button class="copy-btn" onclick="copy('${escHtml(b.proxy_username)}', this)">Copy</button>
+        </div>
+      </td>
+      <td class="mono">
+        <div class="copy-row">
+          <span>${escHtml(b.proxy_password)}</span>
+          <button class="copy-btn" onclick="copy('${escHtml(b.proxy_password)}', this)">Copy</button>
+        </div>
+      </td>
+      <td>
+        <span class="${b.is_online ? 'badge-online' : 'badge-offline'}">
+          ${b.is_online ? 'Online' : 'Offline'}
+        </span>
+      </td>
+      <td style="max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--muted);font-size:11px">
+        ${escHtml(b.user_agent || '—')}
+      </td>
+      <td>
+        <button class="btn btn-secondary btn-sm" onclick="openBotModal('${escHtml(b.id)}','${escHtml(b.name)}')">
+          Options
+        </button>
+      </td>
+    </tr>
+  `).join('');
+}
+
+// ── Bot modal ─────────────────────────────────────────
+
+function openBotModal(id, name) {
+  currentBotId = id;
+  document.getElementById('bot-name-input').value = name;
+  document.getElementById('bot-modal').classList.add('active');
+}
+
+async function saveBot() {
+  const name = document.getElementById('bot-name-input').value.trim();
+  if (!name) return;
+  const data = await api('PUT', '/bots', { bot_id: currentBotId, name });
+  if (data.success) {
+    closeModal('bot-modal');
+    toast('Bot renamed.');
+    refreshBots();
+  } else {
+    toast('Error: ' + (data.error || 'unknown'));
+  }
+}
+
+// ── Password modal ────────────────────────────────────
+
+function changePasswordModal(forced = false) {
+  document.getElementById('pw-error').style.display = 'none';
+  document.getElementById('new-pw').value = '';
+  document.getElementById('confirm-pw').value = '';
+  const warn = document.getElementById('pw-warn');
+  warn.style.display = forced ? 'block' : 'none';
+  document.getElementById('pw-modal').classList.add('active');
+}
+
+async function savePassword() {
+  const np   = document.getElementById('new-pw').value;
+  const cp   = document.getElementById('confirm-pw').value;
+  const errEl = document.getElementById('pw-error');
+  errEl.style.display = 'none';
+
+  if (!np) { errEl.textContent = 'Password cannot be empty.'; errEl.style.display = 'block'; return; }
+  if (np !== cp) { errEl.textContent = 'Passwords do not match.'; errEl.style.display = 'block'; return; }
+
+  const data = await api('PUT', '/password', { new_password: np });
+  if (data.success) {
+    closeModal('pw-modal');
+    toast('Password updated.');
+    if (currentUser) currentUser.password_should_be_changed = false;
+  } else {
+    errEl.textContent = data.error || 'Error updating password.';
+    errEl.style.display = 'block';
+  }
+}
+
+// ── Keyboard shortcuts ────────────────────────────────
+
+document.addEventListener('keydown', (e) => {
+  if (e.key === 'Enter') {
+    if (document.getElementById('login-screen').style.display !== 'none') login();
+  }
+  if (e.key === 'Escape') {
+    document.querySelectorAll('.overlay.active').forEach(el => el.classList.remove('active'));
+  }
+});
+
+// ── Init ──────────────────────────────────────────────
+
+(async () => {
+  try {
+    const data = await api('GET', '/me');
+    if (data.success) {
+      currentUser = data.result;
+      showDashboard();
+    }
+  } catch {
+    // not authenticated, show login
+  }
+})();
+</script>
+</body>
+</html>

