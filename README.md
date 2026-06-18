@@ -5,7 +5,7 @@
 </p>
 
 ### NOTICE
-
+#### This tools was remade by Claude-Sonnet
 I thought this was clearly-implied, and that these disclaimers were redundant at this point, but:
 
 > This is a tool written for *professional red teams*. It helps simulate an often unpracticed attack scenario involving malicious browser extensions. If you're planning on using this to maliciously spy on your friend/girlfriend/victims, let me know your address and intent and I'll gladly forward your message to your local LEO for your convenience.
